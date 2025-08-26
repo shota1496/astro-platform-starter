@@ -26,9 +26,51 @@ const { title } = Astro.props;
         <div class="flex flex-col min-h-screen px-6 bg-noise sm:px-12">
             <div class="flex flex-col w-full max-w-5xl mx-auto grow">
                 <Header />
-                <main class="grow"><slot /></main>
+                <h1>ニコニコ動画 人気動画３</h1>
+                <div id="video-list">
+                    <p>Loading...</p>
+                </div>
                 <Footer />
             </div>
         </div>
+
+        <script>
+            async function fetchData() {
+                try {
+                    // ローカル環境とデプロイ環境でURLを切り替え
+                    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    const apiUrl = isLocalhost ? 'http://localhost:8888/.netlify/functions/proxy-video-search' : '/.netlify/functions/proxy-video-search';
+
+                    const response = await fetch(apiUrl);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    const container = document.getElementById('video-list');
+                    container.innerHTML = '';
+
+                    result.data.forEach((video) => {
+                        const el = document.createElement('div');
+                        el.className = 'video-item';
+                        el.innerHTML = `
+                        <h2>${video.title}</h2>
+                        <p><strong>再生数:</strong> ${video.viewCounter.toLocaleString()}</p>
+                        <p><a href="https://www.nicovideo.jp/watch/${video.contentId}" target="_blank">▶ 動画を見る</a></p>
+                    `;
+                        container.appendChild(el);
+                    });
+                } catch (error) {
+                    console.error('API fetch failed:', error);
+                    const container = document.getElementById('video-list');
+                    container.innerHTML = `<p style="color:red;">データの取得に失敗しました: ${error.message}</p>`;
+                }
+            }
+
+            // DOMが読み込まれたら関数を実行
+            document.addEventListener('DOMContentLoaded', fetchData);
+        </script>
     </body>
 </html>
